@@ -26,6 +26,7 @@ class GSA {
   void step();
   Vec best() const;
 
+  const double min_dist = 0.0001;
   const double G = 0.5;
   const double dt;
   const Eval err;

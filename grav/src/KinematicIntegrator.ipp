@@ -26,7 +26,9 @@ void GSA<Vec, Eval>::remove_duplicates(vector<Vec>& positions) {
   for (int i = 0; i < positions.size(); ++i) {
     if (!enabled[i]) continue;
     for (int j = i + 1; j < positions.size(); ++j) {
-      if ((positions[i] - positions[j]).norm() < 0.0001) { enabled[i] = false; }
+      if ((positions[i] - positions[j]).norm() < min_dist) {
+        enabled[i] = false;
+      }
     }
   }
 
@@ -54,7 +56,7 @@ void GSA<Vec, Eval>::compute_forces(const vector<Vec>& positions) {
     // TODO: mark a "skip" flag for deleted objects
     for (int j = i + 1; j < positions.size(); ++j) {
       double distance = (positions[i] - positions[j]).norm();
-      // if (distance < 0.01) {
+      // if (distance < min_dist) {
       //   // TODO: architecture change affects this bit of code
       //   positions[i] =
       //       (m_masses[i] * positions[i] + m_masses[j] * positions[j]) /
