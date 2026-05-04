@@ -29,10 +29,11 @@ class GSA {
   const double G = 0.5;
   const double dt;
   const Eval err;
-  
+
   const std::vector<Vec>& positions() const { return m_positions; }
 
  private:
+  void remove_duplicates(std::vector<Vec>& positions);
   void compute_forces(const std::vector<Vec>& positions);
 
   std::vector<Vec> m_positions;
