@@ -38,21 +38,26 @@ template <NormedVector Vec, Evaluator<Vec> Eval>
 bool GSA<Vec, Eval>::step() {
   // calculate error
   std::vector<double> fitnesses(m_x.size());
-  double best = -1, worst = -1;
+  double best_fitness = -1, worst_fitness = -1;
   for (int i = 0; i < m_x.size(); ++i) {
     double fitness = m_eval(m_x[i]);
-    if (best == -1 || fitness < best) { best = fitness; }
-    if (worst == -1 || fitness > worst) { worst = fitness; }
+    if (best_fitness == -1 || fitness < best_fitness) {
+      best_fitness = fitness;
+      m_best = m_x[i];
+    }
+    if (worst_fitness == -1 || fitness > worst_fitness) {
+      worst_fitness = fitness;
+    }
     fitnesses[i] = fitness;
   }
-  assert(best != -1);
-  assert(worst != -1);
+  assert(best_fitness != -1);
+  assert(worst_fitness != -1);
 
   // compute non-normalised mass values
   double total = 0.0;
   std::vector<double> masses(fitnesses.size());
   for (int i = 0; i < fitnesses.size(); ++i) {
-    masses[i] = (fitnesses[i] - worst) / (best - worst);
+    masses[i] = (fitnesses[i] - worst_fitness) / (best_fitness - worst_fitness);
     total += masses[i];
   }
 
@@ -89,9 +94,3 @@ bool GSA<Vec, Eval>::step() {
   return m_iter <= m_max_iters;
 }
 
-template <NormedVector Vec, Evaluator<Vec> Eval>
-Vec GSA<Vec, Eval>::best() const {
-  return *min_element(m_x.begin(), m_x.end(), [this](auto& a, auto& b) {
-    return m_eval(a) < m_eval(b);
-  });
-}

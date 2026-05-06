@@ -26,9 +26,9 @@ class GSA {
   GSA(std::vector<Vec> guesses, Eval metric);
 
   bool step();
-  Vec best() const;
-
+  
   int iter() const { return m_iter; }
+  Vec best() const { return m_best; }
   const std::vector<Vec>& positions() const { return m_x; }
 
   const Eval m_eval;
@@ -44,6 +44,7 @@ class GSA {
   std::mt19937 m_rand;
 
   int m_iter = 0;
+  Vec m_best;
 
   std::vector<Vec> m_x;  // positions
   std::vector<Vec> m_v;  // velocities
