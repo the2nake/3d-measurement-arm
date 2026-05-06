@@ -20,7 +20,8 @@ with open("out/trace.txt", "r") as file:
 
 lines = []
 for i, (x, y) in enumerate(traces):
-    lines.append(ax.plot(x[0], y[0], color="black", linewidth=.5)[0])
+    color = "red" if i == len(traces) - 1 else "black"
+    lines.append(ax.plot(x[0], y[0], color=color, linewidth=.5)[0])
 
 
 def update(frame):

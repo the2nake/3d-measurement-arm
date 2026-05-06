@@ -1,0 +1,97 @@
+#include <algorithm>
+#include <cassert>
+#include <iostream>
+#include <numeric>
+#include <random>
+#include <ranges>
+
+#include "GSA.hpp"
+
+using namespace std;
+
+template <NormedVector Vec, Evaluator<Vec> Eval>
+GSA<Vec, Eval>::GSA(vector<Vec> guesses, Eval err)
+    : m_eval(err), m_x(guesses), m_v(guesses.size()) {
+  std::random_device r;
+  std::seed_seq ss{r(), r(), r(), r(), r(), r(), r(), r(), r()};
+  m_rand = std::mt19937(ss);
+}
+
+template <typename T, typename T2>
+ostream& operator<<(ostream& os, const std::pair<T, T2>& p) {
+  os << p.first << " " << p.second << " ";
+  return os;
+}
+
+template <typename T>
+ostream& operator<<(ostream& os, const vector<T>& v) {
+  for (const auto& x : v) { os << x << " "; }
+  return os;
+}
+
+// ostream& operator<<(ostream& os, const vector<bool>& v) {
+//   for (const auto& b : v) { os << (b ? "1" : "0") << " "; }
+//   return os;
+// }
+
+template <NormedVector Vec, Evaluator<Vec> Eval>
+bool GSA<Vec, Eval>::step() {
+  // calculate error
+  std::vector<double> fitnesses(m_x.size());
+  double best = -1, worst = -1;
+  for (int i = 0; i < m_x.size(); ++i) {
+    double fitness = m_eval(m_x[i]);
+    if (best == -1 || fitness < best) { best = fitness; }
+    if (worst == -1 || fitness > worst) { worst = fitness; }
+    fitnesses[i] = fitness;
+  }
+  assert(best != -1);
+  assert(worst != -1);
+
+  // compute non-normalised mass values
+  double total = 0.0;
+  std::vector<double> masses(fitnesses.size());
+  for (int i = 0; i < fitnesses.size(); ++i) {
+    masses[i] = (fitnesses[i] - worst) / (best - worst);
+    total += masses[i];
+  }
+
+  // normalise mass values
+  for (int i = 0; i < masses.size(); ++i) { masses[i] /= total; }
+
+  // get gravitational constant
+  const double G = G_i * std::exp(-beta * m_iter / (double)m_max_iters);
+
+  // attract towards kb best scores
+  std::vector<std::pair<double, int>> indexed_fitnesses(fitnesses.size());
+  for (int i = 0; i < fitnesses.size(); ++i) {
+    indexed_fitnesses[i] = {fitnesses[i], i};
+  }
+  std::nth_element(indexed_fitnesses.begin(),
+                   indexed_fitnesses.begin() + kb - 1, indexed_fitnesses.end());
+
+  std::vector<Vec> accels(m_x.size());
+  std::uniform_real_distribution<> r(0, 1);
+  for (int i = 0; i < m_x.size(); ++i) {
+    for (int k = 0; k < kb; ++k) {
+      int j = indexed_fitnesses[k].second;
+      Vec d = m_x[j] - m_x[i];
+      auto dist = std::pow(d.norm(), rp);
+      accels[i] = r(m_rand) * G * masses[j] * (d) / (dist + epsilon);
+    }
+  }
+
+  // TODO: use verlet integration?
+  for (int i = 0; i < m_v.size(); ++i) { m_v[i] += accels[i]; }
+  for (int i = 0; i < m_x.size(); ++i) { m_x[i] += m_v[i]; }
+
+  ++m_iter;
+  return m_iter <= m_max_iters;
+}
+
+template <NormedVector Vec, Evaluator<Vec> Eval>
+Vec GSA<Vec, Eval>::best() const {
+  return *min_element(m_x.begin(), m_x.end(), [this](auto& a, auto& b) {
+    return m_eval(a) < m_eval(b);
+  });
+}
