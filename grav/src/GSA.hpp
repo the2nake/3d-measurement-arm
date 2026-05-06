@@ -26,19 +26,19 @@ class GSA {
   GSA(std::vector<Vec> guesses, Eval metric);
 
   bool step();
-  
+
   int iter() const { return m_iter; }
   Vec best() const { return m_best; }
   const std::vector<Vec>& positions() const { return m_x; }
 
   const Eval m_eval;
 
-  const int m_max_iters = 1e4;
-  const int rp = 1;         // exponent f euclidean distance
-  const int kb = 2;         // number of best solutions to pick
-  const double G_i = 1e-5;  // initial gravitation, how to choose this?
-  const double beta = 5.0;  // increasing beta increases gravitation falloff
-  const double epsilon = 0.000001;
+  const int m_max_iters = 1e3;
+  const int rp = 1;                       // exponent of euclidean distance
+  const int kb = 2;                       // number of best solutions to pick
+  const double G_i = 1e-1 / m_max_iters;  // how to choose?
+  const double beta = 20.0;                // promotes gravitation falloff
+  const double epsilon = 2.22e-16;
 
  private:
   std::mt19937 m_rand;

@@ -27,10 +27,10 @@ class ModArgEval {
   const std::function<TargetT(SpaceT)> gen;
 };
 
-std::vector<Vec2> populate_initial_guesses(int samples = 9) {
+std::vector<Vec2> populate_initial_guesses(int samples = 9, double var = 0.01) {
   Vec2 target(3, 3);
-  const double E_mod = 3 * sqrt(2), V_mod = 0.1 * E_mod;
-  const double E_arg = numbers::pi / 4, V_arg = 0.1 * E_arg;
+  const double E_mod = 3 * sqrt(2), V_mod = var * E_mod;
+  const double E_arg = numbers::pi / 4, V_arg = var * E_arg;
   std::random_device r;
   std::seed_seq ss{r(), r(), r(), r(), r(), r(), r(), r(), r()};
   std::mt19937 mt(ss);
@@ -48,7 +48,7 @@ std::vector<Vec2> populate_initial_guesses(int samples = 9) {
 int main() {
   Vec2 target(3, 3);
 
-  std::vector<Vec2> guesses = populate_initial_guesses(50);
+  std::vector<Vec2> guesses = populate_initial_guesses(150, 0.1);
 
   auto generator = [](const Vec2& v2) {
     return Vec2{v2.x1 * std::cos(v2.x2), v2.x1 * std::sin(v2.x2)};
