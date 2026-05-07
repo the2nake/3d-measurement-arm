@@ -1,15 +1,16 @@
+
+#include <Eigen/Dense>
 #include <algorithm>
 #include <cassert>
 #include <iostream>
-#include <numeric>
 #include <random>
-#include <ranges>
 
 #include "GSA.hpp"
 
 using namespace std;
 
-template <NormedVector Vec, Evaluator<Vec> Eval>
+template <typename Vec, Evaluator<Vec> Eval>
+  requires std::convertible_to<Vec, Eigen::VectorXd>
 GSA<Vec, Eval>::GSA(vector<Vec> guesses, Eval err)
     : m_eval(err), m_x(guesses), m_v(guesses.size()) {
   std::random_device r;
@@ -34,7 +35,8 @@ ostream& operator<<(ostream& os, const vector<T>& v) {
 //   return os;
 // }
 
-template <NormedVector Vec, Evaluator<Vec> Eval>
+template <typename Vec, Evaluator<Vec> Eval>
+  requires std::convertible_to<Vec, Eigen::VectorXd>
 bool GSA<Vec, Eval>::step() {
   // calculate error
   std::vector<double> fitnesses(m_x.size());
@@ -81,8 +83,8 @@ bool GSA<Vec, Eval>::step() {
     for (int k = 0; k < kb; ++k) {
       int j = indexed_fitnesses[k].second;
       Vec d = m_x[j] - m_x[i];
-      auto dist = std::pow(d.norm(), rp);
-      accels[i] = r(m_rand) * G * masses[j] * (d) / (dist + epsilon);
+      accels[i] =
+          r(m_rand) * G * masses[j] * (d) / (pow(d.norm(), rp) + epsilon);
     }
   }
 

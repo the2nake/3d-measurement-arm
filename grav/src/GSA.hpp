@@ -1,18 +1,8 @@
 #pragma once
+#include <Eigen/Dense>
 #include <concepts>
 #include <random>
 #include <vector>
-
-template <typename T>
-concept NormedVector = requires(T a, T b, double scalar) {
-  std::equality_comparable<T>;
-  { a + b } -> std::same_as<T>;
-  { a - b } -> std::same_as<T>;
-  { scalar * a } -> std::same_as<T>;
-  { a.norm() } -> std::convertible_to<double>;
-  0.0 * a == 0.0 * b;
-  0.0 * a == T();  // should default to zero vector
-};
 
 template <typename T, typename Vec>
 concept Evaluator = requires(T a, Vec v) {
@@ -20,7 +10,8 @@ concept Evaluator = requires(T a, Vec v) {
   { a(v) } -> std::convertible_to<double>;
 };
 
-template <NormedVector Vec, Evaluator<Vec> Eval>
+template <typename Vec, Evaluator<Vec> Eval>
+  requires std::convertible_to<Vec, Eigen::VectorXd>
 class GSA {
  public:
   GSA(std::vector<Vec> guesses, Eval metric);
@@ -37,10 +28,12 @@ class GSA {
   const int rp = 1;                       // exponent of euclidean distance
   const int kb = 2;                       // number of best solutions to pick
   const double G_i = 1e-1 / m_max_iters;  // how to choose?
-  const double beta = 20.0;                // promotes gravitation falloff
+  const double beta = 20.0;               // promotes gravitation falloff
   const double epsilon = 2.22e-16;
 
  private:
+  double pow(double x, int p) { return p == 0 ? 1 : x * pow(x, p - 1); }
+
   std::mt19937 m_rand;
 
   int m_iter = 0;
