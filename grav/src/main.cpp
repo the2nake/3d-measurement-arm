@@ -48,15 +48,14 @@ std::vector<Eigen::Vector2d> populate_initial_guesses(int samples = 9,
 
 int main() {
   Eigen::Vector2d target(3, 3);
-
   std::vector<Eigen::Vector2d> guesses = populate_initial_guesses(150, 0.01);
 
-  auto generator = [](const Eigen::Vector2d& v2) {
-    return Eigen::Vector2d{v2[0] * std::cos(v2[1]), v2[0] * std::sin(v2[1])};
+  auto generator = [](const Eigen::Vector2d& v2) -> Eigen::Vector2d {
+    return {v2[0] * std::cos(v2[1]), v2[0] * std::sin(v2[1])};
   };
   ModArgEval<Eigen::Vector2d, Eigen::Vector2d> eval(target, generator);
-  GSA<Eigen::Vector2d, ModArgEval<Eigen::Vector2d, Eigen::Vector2d>> grav(
-      guesses, eval);
+
+  GSA grav(guesses, eval);
 
   std::vector<Eigen::Vector2d> trace;
   string filename = "out/trace.txt";
