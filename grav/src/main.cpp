@@ -14,9 +14,9 @@ using namespace std;
 // sling issue where points diverge away from the center of mass
 
 template <typename TargetT, typename SpaceT>
-class ModArgEval {
+class LstsqEval {
  public:
-  ModArgEval(TargetT target, std::function<TargetT(SpaceT)> gen)
+  LstsqEval(TargetT target, std::function<TargetT(SpaceT)> gen)
       : target(target), gen(gen) {}
   double operator()(SpaceT v) const {
     TargetT output = gen(v);
@@ -53,7 +53,7 @@ int main() {
   auto generator = [](const Eigen::Vector2d& v2) -> Eigen::Vector2d {
     return {v2[0] * std::cos(v2[1]), v2[0] * std::sin(v2[1])};
   };
-  ModArgEval<Eigen::Vector2d, Eigen::Vector2d> eval(target, generator);
+  LstsqEval<Eigen::Vector2d, Eigen::Vector2d> eval(target, generator);
 
   GSA grav(guesses, eval);
 
