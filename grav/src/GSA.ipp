@@ -11,8 +11,8 @@ using namespace std;
 
 template <typename Vec, Evaluator<Vec> Eval>
   requires std::convertible_to<Vec, Eigen::VectorXd>
-GSA<Vec, Eval>::GSA(vector<Vec> guesses, Eval err)
-    : m_eval(err), m_x(guesses), m_v(guesses.size()) {
+GSA<Vec, Eval>::GSA(const vector<Vec>& guesses, Eval err)
+    : m_eval(std::move(err)), m_x(guesses), m_v(guesses.size()) {
   std::random_device r;
   std::seed_seq ss{r(), r(), r(), r(), r(), r(), r(), r(), r()};
   m_rand = std::mt19937(ss);

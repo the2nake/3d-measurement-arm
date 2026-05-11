@@ -7,3 +7,4 @@ AllowShortBlocksOnASingleLine: Always
 AllowShortFunctionsOnASingleLine: true
 KeepEmptyLinesAtEOF: true
 InsertNewlineAtEOF: true
+AlignArrayOfStructures: Right

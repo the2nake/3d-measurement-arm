@@ -14,7 +14,7 @@ template <typename Vec, Evaluator<Vec> Eval>
   requires std::convertible_to<Vec, Eigen::VectorXd>
 class GSA {
  public:
-  GSA(std::vector<Vec> guesses, Eval metric);
+  GSA(const std::vector<Vec> &guesses, Eval metric);
 
   bool step();
 
