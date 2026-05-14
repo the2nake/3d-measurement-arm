@@ -1,3 +1,4 @@
+#include <Eigen/Core>
 #include <Eigen/Dense>
 #include <cmath>
 #include <format>
@@ -7,6 +8,7 @@
 #include <print>
 #include <random>
 #include <stdexcept>
+#include <type_traits>
 
 #include "GSA.hpp"
 #include "GSA.ipp"
@@ -44,10 +46,48 @@ class CalibEval {
   const std::function<eval_t(param_t)> fk;
 };
 
+/**
+ * @brief Returns the homogeneous transform for Denavit-Hartenberg parameters
+ *
+ * @param a link length
+ * @param d link offset
+ * @param alpha link twist in radians
+ * @param theta joint angle in radians
+ * @return Eigen::Matrix4d containing the transform. Transforms should be
+ * chained in increasing order from left to right (e.g. `A_1_2 = A_1 * A_2`)
+ */
+Eigen::Matrix4d dh_matrix(double a, double d, double alpha, double theta) {
+  double ct = std::cos(theta);
+  double st = std::sin(theta);
+
+  double ca = std::cos(alpha);
+  double sa = std::sin(alpha);
+
+  return Eigen::Matrix4d{
+      {ct, -st * ca,  st * sa, a * ct},
+      {st,  ct * ca, -ct * sa, a * st},
+      {0.,       sa,       ca,      d},
+      {0.,       0.,       0.,     1.}
+  };
+}
+Eigen::MatrixXd clean(Eigen::MatrixXd M) {
+  M = (1e-6 < M.array().abs()).select(M, 0.);
+  return M;
+}
+
 int main() {
+  double j1 = 0.;
+  double j2 = 45. * numbers::pi / 180.;
+  double j3 = -45. * numbers::pi / 180.;
+  // 90 deg offset is important
+  auto A1 = dh_matrix(0., 10., numbers::pi / 2., numbers::pi / 2 + j1);
+  auto A2 = dh_matrix(10., 0., 0., j2);
+  auto A3 = dh_matrix(10., 0., 0., j3);
+  cout << clean(A1 * A2 * A3) << endl;
+  return 0;
   using param_vec_t = Eigen::Vector<double, 6>;
 
-  auto fk_gen = [](const param_vec_t& v6) {
+  auto fk_gen = [](const param_vec_t& v) {
     return Eigen::Vector3d{0.0, 0.0, 0.0};
   };
   // todo: make composite evaluator, taking in matrices and evaluating each
