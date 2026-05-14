@@ -76,17 +76,21 @@ Eigen::MatrixXd clean(Eigen::MatrixXd M) {
 }
 
 int main() {
+  using namespace numbers;
+
   double j1 = 0.;
-  double j2 = 45. * numbers::pi / 180.;
-  double j3 = -45. * numbers::pi / 180.;
+  double j2 = 45. * pi / 180.;
+  double j3 = -45. * pi / 180.;
   // 90 deg offset is important
-  auto A1 = dh_matrix(0., 10., numbers::pi / 2., numbers::pi / 2 + j1);
-  auto A2 = dh_matrix(10., 0., 0., j2);
-  auto A3 = dh_matrix(10., 0., 0., j3);
+  Eigen::MatrixXd A1 = dh_matrix(0., 10., pi / 2., pi / 2 + j1);
+  Eigen::MatrixXd A2 = dh_matrix(10., 0., 0., j2);
+  Eigen::MatrixXd A3 = dh_matrix(10., 0., 0., j3);
   cout << clean(A1 * A2 * A3) << endl;
   return 0;
-  using param_vec_t = Eigen::Vector<double, 6>;
 
+  using param_vec_t = Eigen::Vector<double, 6>;
+  // todo: implmenet fk_gen. should compute chain of transformations using
+  // dh_matrix and return end-effector coordinates (T.col(3).)
   auto fk_gen = [](const param_vec_t& v) {
     return Eigen::Vector3d{0.0, 0.0, 0.0};
   };
@@ -94,9 +98,9 @@ int main() {
   // column, operator() overloaded as norm of vector of errors
   // x, y parallel to ground, z is vertical
   Eigen::Matrix<double, 3, 4> calibration_points{
-      {0.0, 100.0, 100.0,   0.0},
-      {0.0,   0.0, 100.0, 100.0},
-      {0.0,   0.0,   0.0,   0.0}
+      {0., 100., 100.,   0.},
+      {0.,   0., 100., 100.},
+      {0.,   0.,   0.,   0.}
   };
   CalibEval fk_eval(calibration_points, fk_gen);
 
@@ -128,7 +132,7 @@ int main() {
 //                                                       double var = 0.01) {
 //   Eigen::Vector2d target(3, 3);
 //   const double E_mod = 3 * sqrt(2), V_mod = var * E_mod;
-//   const double E_arg = numbers::pi / 4, V_arg = var * E_arg;
+//   const double E_arg = pi / 4, V_arg = var * E_arg;
 //   std::random_device r;
 //   std::seed_seq ss{r(), r(), r(), r(), r(), r(), r(), r(), r()};
 //   std::mt19937 mt(ss);
