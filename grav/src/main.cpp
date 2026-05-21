@@ -15,24 +15,29 @@
 
 using namespace std;
 
+// todo: test calibeval, ideally on real case
 class CalibEval {
  public:
   using eval_t = Eigen::Vector3d;
+  using sense_t = Eigen::Vector3d;
   using param_t = Eigen::VectorXd;
 
   CalibEval(Eigen::Matrix3Xd targets,  // each column is a 3d target
-            std::function<eval_t(param_t)> fk)
-      : targets(targets), fk(fk) {}
+            Eigen::Matrix3Xd senses,   // each column has 3 voltages
+            std::function<eval_t(param_t, sense_t)> fk)
+      : targets(targets), senses(senses), fk(fk) {
+    if (senses.cols() != targets.cols()) {
+      throw std::invalid_argument(
+          std::format("dimension mismatch: senses.cols={}, targets.cols={}",
+                      senses.cols(), targets.cols()));
+    }
+  }
 
   double operator()(const Eigen::MatrixXd& parameters) const {
-    if (parameters.cols() != targets.cols())
-      throw std::invalid_argument(
-          std::format("incorrect input dimension: got {}, expected {}",
-                      parameters.cols(), targets.cols()));
     Eigen::Matrix3Xd effector_positions(3, targets.cols());
 
     for (int i = 0; i < targets.cols(); ++i) {
-      effector_positions.col(i) = fk(parameters.col(i));
+      effector_positions.col(i) = fk(parameters.col(i), senses.col(i));
     }
 
     Eigen::VectorXd residuals(targets.cols());
@@ -43,11 +48,15 @@ class CalibEval {
   }
 
   const Eigen::Matrix3Xd targets;
-  const std::function<eval_t(param_t)> fk;
+  const Eigen::Matrix3Xd senses;
+  const std::function<eval_t(param_t, sense_t)> fk;
 };
 
 /**
  * @brief Returns the homogeneous transform for Denavit-Hartenberg parameters
+ *
+ * This function uses a convention where the z-axis screw transform is applied
+ * first
  *
  * @param a link length
  * @param d link offset
@@ -78,41 +87,67 @@ Eigen::MatrixXd clean(Eigen::MatrixXd M) {
 int main() {
   using namespace numbers;
 
-  double j1 = 0.;
-  double j2 = 45. * pi / 180.;
-  double j3 = -45. * pi / 180.;
-  // 90 deg offset is important
-  Eigen::MatrixXd A1 = dh_matrix(0., 10., pi / 2., pi / 2 + j1);
-  Eigen::MatrixXd A2 = dh_matrix(10., 0., 0., j2);
-  Eigen::MatrixXd A3 = dh_matrix(10., 0., 0., j3);
-  cout << clean(A1 * A2 * A3) << endl;
-  return 0;
-
-  using param_vec_t = Eigen::Vector<double, 6>;
-  // todo: implmenet fk_gen. should compute chain of transformations using
-  // dh_matrix and return end-effector coordinates (T.col(3).)
-  auto fk_gen = [](const param_vec_t& v) {
-    return Eigen::Vector3d{0.0, 0.0, 0.0};
+  // param_vec_t = {origin_[x,y], d1, a2, a3, theta[1,2,3]_m, theta[1,2,3]_b}
+  // thetai = thetai_m * vi + thetai_b, vi is potentiometer value
+  // sense_vec_t = {v1, v2, v3}
+  using param_vec_t = Eigen::Vector<double, 11>;
+  using sense_vec_t = Eigen::Vector<double, 3>;
+  auto fk_gen = [](const param_vec_t& p,
+                   const sense_vec_t& v) -> Eigen::Vector3d {
+    Eigen::Matrix4d T{
+        {1., 0., 0., p(0)},
+        {0., 1., 0., p(1)},
+        {0., 0., 1.,   0.},
+        {0., 0., 0.,   1.}
+    };
+    double j1 = p(5) * v(0) + p(8);
+    double j2 = p(6) * v(1) + p(9);
+    double j3 = p(7) * v(2) + p(10);
+    // add pi / 2. to align the coordinate system
+    T *= dh_matrix(0., p(2), pi / 2., pi / 2. + j1) *
+         dh_matrix(p(3), 0., 0., j2) * dh_matrix(p(4), 0., 0., j3);
+    return T(Eigen::seq(0, 2), 3);
   };
-  // todo: make composite evaluator, taking in matrices and evaluating each
-  // column, operator() overloaded as norm of vector of errors
+
   // x, y parallel to ground, z is vertical
-  Eigen::Matrix<double, 3, 4> calibration_points{
+  Eigen::Matrix<double, 3, 4> calib_points{
       {0., 100., 100.,   0.},
       {0.,   0., 100., 100.},
       {0.,   0.,   0.,   0.}
   };
-  CalibEval fk_eval(calibration_points, fk_gen);
+  // todo: grab voltages from arm, maybe will need more inputs
+  Eigen::Matrix<double, 3, 4> calib_volts{
+      {0., 100., 100.,   0.},
+      {0.,   0., 100., 100.},
+      {0.,   0.,   0.,   0.}
+  };
+  CalibEval fk_eval(calib_points, calib_volts, fk_gen);
 
-  param_vec_t mu_prior = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  // todo: get voltages and corresponding joint angles
+  // todo: get calib_volts
+
+  // j1(v): 3704 -> 0,     6497 -> -pi/2 (fairly exact)
+  // j2(v): 4777 -> pi/2,  6123 -> pi/4
+  // j3(v): 2444 -> -pi/2, 3760 -> -3pi/4
+  double m1 = (-pi / 2.) / (6497 - 3704);
+  double m2 = (-pi / 4.) / (6123 - 4777);
+  double m3 = (-pi / 4.) / (3760 - 2444);
+  double b1 = 0 - m1 * 3704;
+  double b2 = pi / 2. - m2 * 4777;
+  double b3 = -pi / 2. - m3 * 2444;
+  param_vec_t mu_prior = {0., 0., 62., 314., 333., m1, m2, m3, b1, b2, b3};
+  cout << endl;
+  cout << "predicted location:" << endl
+       << fk_gen(mu_prior, {5090., 5695., 4183.}) << endl;
+  return 0;
+
+  // todo: confirm that fk_eval(mu_prior) is low
   std::vector<param_vec_t> guesses = {mu_prior};
 
   GSA grav(guesses, fk_eval);
 }
 
-// sling issue where points diverge away from the center of mass
-// todo: email the people who originally did the GSA method and ask how they
-// handled the slingshot issue
+// ! fixme: sling issue where points diverge away from the center of mass
 
 // template <typename TargetT, typename SpaceT>
 // class LstsqEval {
@@ -130,6 +165,7 @@ int main() {
 
 // std::vector<Eigen::Vector2d> populate_initial_guesses(int samples = 9,
 //                                                       double var = 0.01) {
+//   using namespace std::numbers;
 //   Eigen::Vector2d target(3, 3);
 //   const double E_mod = 3 * sqrt(2), V_mod = var * E_mod;
 //   const double E_arg = pi / 4, V_arg = var * E_arg;

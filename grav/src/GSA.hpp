@@ -27,7 +27,7 @@ class GSA {
   const int m_max_iters = 1e3;
   const int rp = 1;                       // exponent of euclidean distance
   const int kb = 2;                       // number of best solutions to pick
-  const double G_i = 1e-1 / m_max_iters;  // how to choose?
+  const double G_i = 1e-0 / m_max_iters;  // how to choose?
   const double beta = 20.0;               // promotes gravitation falloff
   const double epsilon = 2.22e-16;
 
