@@ -110,21 +110,30 @@ int main() {
   };
 
   // x, y parallel to ground, z is vertical
-  Eigen::Matrix<double, 3, 4> calib_points{
-      {0., 100., 100., 0.  },
-      {0., 0.,   100., 100.},
-      {0., 0.,   0.,   0.  }
+  Eigen::Matrix<double, 3, 5> calib_points{
+      {0., 100., 100., 0.,   50.},
+      {0., 0.,   100., 100., 50.},
+      {0., 0.,   0.,   0.,   0. }
   };
-  // todo: grab voltages from arm, maybe will need more inputs
-  Eigen::Matrix<double, 3, 4> calib_volts{
-      {0., 100., 100., 0.  },
-      {0., 0.,   100., 100.},
-      {0., 0.,   0.,   0.  }
+
+  Eigen::Matrix<double, 3, 5> calib_volts{
+      {5047., 6162., 5830., 5137., 5544.},
+      {5688., 5686., 5792., 5775., 5710.},
+      {4450., 4374., 3847., 3905., 4184.}
   };
   CalibEval fk_eval(calib_points, calib_volts, fk_gen);
 
-  // todo: get voltages and corresponding joint angles
-  // todo: get calib_volts
+  Eigen::Matrix<double, 3, 5> test_points{
+      {21., 35.5, 60.5, 77., 50. + 60. / sqrt(2)},
+      {10., 43.5, 83.5, 40., 50. + 60. / sqrt(2)},
+      {0.,  0.,   0.,   0.,  0.                 }
+  };
+  // todo: grab voltages from arm, maybe will need more inputs
+  Eigen::Matrix<double, 3, 5> test_volts{
+      {5303., 5425., 5588., 5800., 5798.},
+      {5687., 5702., 5751., 5703., 5775.},
+      {4408., 4225., 3986., 4216., 3904.}
+  };
 
   // j1(v): 3704 -> 0,     6497 -> -pi/2 (fairly exact)
   // j2(v): 4777 -> pi/2,  6123 -> pi/4
