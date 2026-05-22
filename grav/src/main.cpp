@@ -109,13 +109,14 @@ int main() {
     return T(Eigen::seq(0, 2), 3);
   };
 
+  // * note: test and calib datasets were collected with base local frame
+  // rotated around +50 deg from test coordinate frame, with origin (30., -137.)
   // x, y parallel to ground, z is vertical
   Eigen::Matrix<double, 3, 5> calib_points{
       {0., 100., 100., 0.,   50.},
       {0., 0.,   100., 100., 50.},
       {0., 0.,   0.,   0.,   0. }
   };
-
   Eigen::Matrix<double, 3, 5> calib_volts{
       {5047., 6162., 5830., 5137., 5544.},
       {5688., 5686., 5792., 5775., 5710.},
@@ -144,6 +145,7 @@ int main() {
   const double b1 = 0 - m1 * 3704;
   const double b2 = pi / 2. - m2 * 4777;
   const double b3 = -pi / 2. - m3 * 2444;
+  // * note: mu_prior accurate up to variations in x, y, and b1
   param_vec_t mu_prior = {0., 0., 62., 314., 333., m1, m2, m3, b1, b2, b3};
   cout << endl;
   cout << "predicted location:" << endl
