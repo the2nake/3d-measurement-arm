@@ -73,10 +73,10 @@ Eigen::Matrix4d dh_matrix(double a, double d, double alpha, double theta) {
   double sa = std::sin(alpha);
 
   return Eigen::Matrix4d{
-      {ct, -st * ca,  st * sa, a * ct},
-      {st,  ct * ca, -ct * sa, a * st},
-      {0.,       sa,       ca,      d},
-      {0.,       0.,       0.,     1.}
+      {ct, -st * ca, st * sa,  a * ct},
+      {st, ct * ca,  -ct * sa, a * st},
+      {0., sa,       ca,       d     },
+      {0., 0.,       0.,       1.    }
   };
 }
 Eigen::MatrixXd clean(Eigen::MatrixXd M) {
@@ -97,8 +97,8 @@ int main() {
     Eigen::Matrix4d T{
         {1., 0., 0., p(0)},
         {0., 1., 0., p(1)},
-        {0., 0., 1.,   0.},
-        {0., 0., 0.,   1.}
+        {0., 0., 1., 0.  },
+        {0., 0., 0., 1.  }
     };
     double j1 = p(5) * v(0) + p(8);
     double j2 = p(6) * v(1) + p(9);
@@ -111,15 +111,15 @@ int main() {
 
   // x, y parallel to ground, z is vertical
   Eigen::Matrix<double, 3, 4> calib_points{
-      {0., 100., 100.,   0.},
-      {0.,   0., 100., 100.},
-      {0.,   0.,   0.,   0.}
+      {0., 100., 100., 0.  },
+      {0., 0.,   100., 100.},
+      {0., 0.,   0.,   0.  }
   };
   // todo: grab voltages from arm, maybe will need more inputs
   Eigen::Matrix<double, 3, 4> calib_volts{
-      {0., 100., 100.,   0.},
-      {0.,   0., 100., 100.},
-      {0.,   0.,   0.,   0.}
+      {0., 100., 100., 0.  },
+      {0., 0.,   100., 100.},
+      {0., 0.,   0.,   0.  }
   };
   CalibEval fk_eval(calib_points, calib_volts, fk_gen);
 
@@ -129,12 +129,12 @@ int main() {
   // j1(v): 3704 -> 0,     6497 -> -pi/2 (fairly exact)
   // j2(v): 4777 -> pi/2,  6123 -> pi/4
   // j3(v): 2444 -> -pi/2, 3760 -> -3pi/4
-  double m1 = (-pi / 2.) / (6497 - 3704);
-  double m2 = (-pi / 4.) / (6123 - 4777);
-  double m3 = (-pi / 4.) / (3760 - 2444);
-  double b1 = 0 - m1 * 3704;
-  double b2 = pi / 2. - m2 * 4777;
-  double b3 = -pi / 2. - m3 * 2444;
+  const double m1 = (-pi / 2.) / (6497 - 3704);
+  const double m2 = (-pi / 4.) / (6123 - 4777);
+  const double m3 = (-pi / 4.) / (3760 - 2444);
+  const double b1 = 0 - m1 * 3704;
+  const double b2 = pi / 2. - m2 * 4777;
+  const double b3 = -pi / 2. - m3 * 2444;
   param_vec_t mu_prior = {0., 0., 62., 314., 333., m1, m2, m3, b1, b2, b3};
   cout << endl;
   cout << "predicted location:" << endl
