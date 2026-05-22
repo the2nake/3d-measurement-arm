@@ -16,15 +16,15 @@
 using namespace std;
 
 // todo: test calibeval, ideally on real case
-class CalibEval {
+class Eval {
  public:
   using eval_t = Eigen::Vector3d;
   using sense_t = Eigen::Vector3d;
   using param_t = Eigen::VectorXd;
 
-  CalibEval(Eigen::Matrix3Xd targets,  // each column is a 3d target
-            Eigen::Matrix3Xd senses,   // each column has 3 voltages
-            std::function<eval_t(param_t, sense_t)> fk)
+  Eval(Eigen::Matrix3Xd targets,  // each column is a 3d target
+       Eigen::Matrix3Xd senses,   // each column has 3 voltages
+       std::function<eval_t(param_t, sense_t)> fk)
       : targets(targets), senses(senses), fk(fk) {
     if (senses.cols() != targets.cols()) {
       throw std::invalid_argument(
@@ -33,16 +33,24 @@ class CalibEval {
     }
   }
 
-  double operator()(const Eigen::MatrixXd& parameters) const {
-    Eigen::Matrix3Xd effector_positions(3, targets.cols());
+  Eigen::Matrix3Xd effector_positions(const param_t& parameters) const {
+    Eigen::Matrix3Xd positions(3, targets.cols());
 
     for (int i = 0; i < targets.cols(); ++i) {
-      effector_positions.col(i) = fk(parameters.col(i), senses.col(i));
+      positions.col(i) = fk(parameters, senses.col(i));
+    }
+    return positions;
+  }
+
+  double operator()(const param_t& parameters) const {
+    Eigen::Matrix3Xd pred = effector_positions(parameters);
+    for (int i = 0; i < targets.cols(); ++i) {
+      pred.col(i) = fk(parameters, senses.col(i));
     }
 
     Eigen::VectorXd residuals(targets.cols());
     for (int i = 0; i < targets.cols(); ++i) {
-      residuals(i) = (targets.col(i) - effector_positions.col(i)).norm();
+      residuals(i) = (targets.col(i) - pred.col(i)).norm();
     }
     return residuals.norm();
   }
@@ -51,6 +59,10 @@ class CalibEval {
   const Eigen::Matrix3Xd senses;
   const std::function<eval_t(param_t, sense_t)> fk;
 };
+
+constexpr double radians(double degrees) {
+  return numbers::pi * degrees / 180.;
+}
 
 /**
  * @brief Returns the homogeneous transform for Denavit-Hartenberg parameters
@@ -110,7 +122,7 @@ int main() {
   };
 
   // * note: test and calib datasets were collected with base local frame
-  // rotated around +50 deg from test coordinate frame, with origin (30., -137.)
+  // rotated around +50 deg from test coordinate frame, with origin (40., -137.)
   // x, y parallel to ground, z is vertical
   Eigen::Matrix<double, 3, 5> calib_points{
       {0., 100., 100., 0.,   50.},
@@ -122,19 +134,19 @@ int main() {
       {5688., 5686., 5792., 5775., 5710.},
       {4450., 4374., 3847., 3905., 4184.}
   };
-  CalibEval fk_eval(calib_points, calib_volts, fk_gen);
+  Eval eval_calib(calib_points, calib_volts, fk_gen);
 
   Eigen::Matrix<double, 3, 5> test_points{
       {21., 35.5, 60.5, 77., 50. + 60. / sqrt(2)},
       {10., 43.5, 83.5, 40., 50. + 60. / sqrt(2)},
       {0.,  0.,   0.,   0.,  0.                 }
   };
-  // todo: grab voltages from arm, maybe will need more inputs
   Eigen::Matrix<double, 3, 5> test_volts{
       {5303., 5425., 5588., 5800., 5798.},
       {5687., 5702., 5751., 5703., 5775.},
       {4408., 4225., 3986., 4216., 3904.}
   };
+  Eval eval_test(test_points, test_volts, fk_gen);
 
   // j1(v): 3704 -> 0,     6497 -> -pi/2 (fairly exact)
   // j2(v): 4777 -> pi/2,  6123 -> pi/4
@@ -145,17 +157,32 @@ int main() {
   const double b1 = 0 - m1 * 3704;
   const double b2 = pi / 2. - m2 * 4777;
   const double b3 = -pi / 2. - m3 * 2444;
-  // * note: mu_prior accurate up to variations in x, y, and b1
-  param_vec_t mu_prior = {0., 0., 62., 314., 333., m1, m2, m3, b1, b2, b3};
+  // * note: prior accurate up to variations in x, y, and b1
+  param_vec_t prior = {
+      40., -130., 62., 314., 333., m1, m2, m3, b1 + radians(45.), b2, b3};
+
+  for (int degrees = 0; degrees < 360; ++degrees) {
+    param_vec_t candidate = {
+        30., -130., 62., 314., 333., m1, m2, m3, b1 + radians(degrees), b2, b3};
+    if (eval_calib(candidate) < eval_calib(prior)) { prior = candidate; }
+  }
+
+  // ? todo: don't vary x and y; express as mean of calib residuals
   cout << endl;
-  cout << "predicted location:" << endl
-       << fk_gen(mu_prior, {5090., 5695., 4183.}) << endl;
+  cout << "eval_calib(prior)=" << eval_calib(prior) << endl;
+  cout << "residuals:\n"
+       << calib_points - eval_calib.effector_positions(prior) << endl
+       << endl;
+  cout << "eval_test(prior)=" << eval_test(prior) << endl;
+  cout << "residuals:\n"
+       << test_points - eval_test.effector_positions(prior) << endl
+       << endl;
+  cout << endl;
   return 0;
 
-  // todo: confirm that fk_eval(mu_prior) is low
-  std::vector<param_vec_t> guesses = {mu_prior};
+  std::vector<param_vec_t> guesses = {prior};
 
-  GSA grav(guesses, fk_eval);
+  GSA grav(guesses, eval_calib);
 }
 
 // ! fixme: sling issue where points diverge away from the center of mass
