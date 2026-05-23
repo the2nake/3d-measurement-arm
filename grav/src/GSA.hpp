@@ -14,7 +14,7 @@ template <typename Vec, Evaluator<Vec> Eval>
   requires std::convertible_to<Vec, Eigen::VectorXd>
 class GSA {
  public:
-  GSA(const std::vector<Vec> &guesses, Eval metric);
+  GSA(const std::vector<Vec>& guesses, Eval metric);
 
   bool step();
 
@@ -25,11 +25,11 @@ class GSA {
   const Eval m_eval;
 
   const int m_max_iters = 1e3;
-  const int rp = 1;                       // exponent of euclidean distance
-  const int kb = 2;                       // number of best solutions to pick
-  const double G_i = 1e-0 / m_max_iters;  // how to choose?
-  const double beta = 20.0;               // promotes gravitation falloff
-  const double epsilon = 2.22e-16;
+  const int rp = 1;          // exponent of euclidean distance
+  const int kb = 2;          // number of best solutions to pick
+  const double G_i = 1e-1;   // how to choose?
+  const double beta = 20.0;  // promotes gravitation falloff
+  const double epsilon = 1e-30;
 
  private:
   double pow(double x, int p) { return p == 0 ? 1 : x * pow(x, p - 1); }

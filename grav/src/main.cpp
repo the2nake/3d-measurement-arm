@@ -91,9 +91,33 @@ Eigen::Matrix4d dh_matrix(double a, double d, double alpha, double theta) {
       {0., 0.,       0.,       1.    }
   };
 }
+
 Eigen::MatrixXd clean(Eigen::MatrixXd M) {
   M = (1e-6 < M.array().abs()).select(M, 0.);
   return M;
+}
+
+template <typename T>
+std::vector<T> generate_guesses(T mean, T range, int n = 150) {
+  if (mean.rows() != range.rows()) {
+    throw std::invalid_argument("mismatched input dimensions");
+  }
+  std::random_device r;
+  std::seed_seq ss{r(), r(), r(), r(), r(), r(), r(), r(), r()};
+  std::mt19937 rand(ss);
+  std::uniform_real_distribution<> uni(-0.5, 0.5);  // use this then scaled
+
+  std::vector<T> guesses = {mean};
+
+  for (int i = 0; i < n; ++i) {
+    T guess(mean.rows());
+    for (int j = 0; j < mean.rows(); ++j) {
+      guess(j) = mean(j) + uni(rand) * range(j);
+    }
+    guesses.emplace_back(guess);
+  }
+
+  return guesses;
 }
 
 int main() {
@@ -160,7 +184,9 @@ int main() {
   // * note: prior accurate up to variations in x, y, and b1
   param_vec_t prior = {
       40., -130., 62., 314., 333., m1, m2, m3, b1 + radians(45.), b2, b3};
-
+  // prior = {24.3889,      -132.512,     60.7717, 312.741, 331.384,
+  // -0.000561854,
+  //          -0.000591576, -0.000570939, 2.97275, 4.41433, -0.140238};
   for (int degrees = 0; degrees < 360; ++degrees) {
     param_vec_t candidate = {
         30., -130., 62., 314., 333., m1, m2, m3, b1 + radians(degrees), b2, b3};
@@ -178,11 +204,54 @@ int main() {
        << test_points - eval_test.effector_positions(prior) << endl
        << endl;
   cout << endl;
-  return 0;
+  // return 0;
 
-  std::vector<param_vec_t> guesses = {prior};
+  const double err_l = 5.;
+  const double err_m = 1e-4;
+  const double err_b = 0.1;
+  param_vec_t dist = {15.,   15.,   err_l, err_l, err_l, err_m,
+                      err_m, err_m, err_b, err_b, err_b};
 
+  std::vector<param_vec_t> guesses = generate_guesses(prior, dist, 200);
+  // todo! write function to generate guesses from prior (add some decent
+  // disitrbution estimates?)
   GSA grav(guesses, eval_calib);
+
+  std::vector<param_vec_t> trace;
+  string filename = "out/trace.txt";
+  std::ofstream out_file(filename);
+  if (!out_file.is_open()) {
+    println("{} could not be opened", filename);
+    return 1;
+  }
+
+  int best_iter = 0;
+  double best_score = 1000.0;
+  param_vec_t fit;
+  while (grav.step()) {
+    for (auto& pos : grav.positions()) { trace.emplace_back(pos); }
+
+    // println();
+    double new_best = eval_calib(grav.best());
+    if (new_best < best_score) {
+      best_score = new_best;
+      fit = grav.best();
+      best_iter = grav.iter();
+      println("[{}] new best, err = {:.3}", best_iter, best_score);
+    }
+    trace.emplace_back(grav.best());
+  }
+
+  out_file << guesses.size() + 1 << endl;
+  for (auto& pos : trace) { out_file << pos.transpose() << endl; }
+
+  println();
+  println("gsa: err = {:.3}, iter = {} / {}", best_score, best_iter,
+          grav.m_max_iters);
+  cout << "  score(test)=" << eval_test(fit) << endl;
+  cout << "  params:" << endl << fit << endl;
+  cout << "  residuals:" << endl
+       << test_points - eval_test.effector_positions(fit) << endl;
 }
 
 // ! fixme: sling issue where points diverge away from the center of mass
