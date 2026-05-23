@@ -15,7 +15,6 @@
 
 using namespace std;
 
-// todo: test calibeval, ideally on real case
 class Eval {
  public:
   using eval_t = Eigen::Vector3d;
@@ -213,8 +212,6 @@ int main() {
                       err_m, err_m, err_b, err_b, err_b};
 
   std::vector<param_vec_t> guesses = generate_guesses(prior, dist, 200);
-  // todo! write function to generate guesses from prior (add some decent
-  // disitrbution estimates?)
   GSA grav(guesses, eval_calib);
 
   std::vector<param_vec_t> trace;
