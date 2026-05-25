@@ -1,14 +1,11 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <cmath>
-#include <format>
 #include <fstream>
-#include <functional>
 #include <numbers>
 #include <print>
 #include <random>
 #include <stdexcept>
-#include <type_traits>
 
 #include "GSA.hpp"
 #include "GSA.ipp"

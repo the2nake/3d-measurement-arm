@@ -1,9 +1,10 @@
 cmake_minimum_required(VERSION 3.25)
 set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 
 project(GravitationalSearch LANGUAGES CXX)
 
-# find_package(SDL3 REQUIRED CONFIG REQUIRED COMPONENTS SDL3-shared) 
+# find_package(SDL3 REQUIRED CONFIG REQUIRED COMPONENTS SDL3-shared)
 find_package (Eigen3 REQUIRED NO_MODULE)
 
 set(EXEC_NAME "grav-search")

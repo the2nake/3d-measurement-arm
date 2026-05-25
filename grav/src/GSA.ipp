@@ -100,4 +100,3 @@ bool GSA<Vec, Eval>::step() {
   ++m_iter;
   return m_iter <= m_max_iters;
 }
-
