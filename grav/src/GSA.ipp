@@ -71,9 +71,6 @@ bool GSA<Vec, Eval>::step() {
   // normalise mass values
   for (int i = 0; i < masses.size(); ++i) { masses[i] /= total; }
 
-  // get gravitational constant
-  const double G = G_i * std::exp(-beta * m_iter / (double)m_max_iters);
-
   // attract towards kb best scores
   std::vector<std::pair<double, int>> indexed_fitnesses(fitnesses.size());
   for (int i = 0; i < fitnesses.size(); ++i) {
@@ -82,6 +79,8 @@ bool GSA<Vec, Eval>::step() {
   std::nth_element(indexed_fitnesses.begin(),
                    indexed_fitnesses.begin() + kb - 1, indexed_fitnesses.end());
 
+  // get gravitational constant
+  const double G = G_i * std::exp(-beta * m_iter / (double)m_max_iters);
   std::vector<Vec> accels(m_x.size());
   std::uniform_real_distribution<> r(0, 1);
   for (int i = 0; i < m_x.size(); ++i) {

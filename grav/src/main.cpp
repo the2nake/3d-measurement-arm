@@ -39,16 +39,9 @@ class Eval {
   }
 
   double operator()(const param_t& parameters) const {
-    Eigen::Matrix3Xd pred = effector_positions(parameters);
-    for (int i = 0; i < targets.cols(); ++i) {
-      pred.col(i) = fk(parameters, senses.col(i));
-    }
-
-    Eigen::VectorXd residuals(targets.cols());
-    for (int i = 0; i < targets.cols(); ++i) {
-      residuals(i) = (targets.col(i) - pred.col(i)).norm();
-    }
-    return residuals.norm();
+    Eigen::Matrix3Xd residuals = targets - effector_positions(parameters);
+    // use norm of mean average error
+    return residuals.cwiseAbs().colwise().sum().norm() / targets.cols();
   }
 
   const Eigen::Matrix3Xd targets;
@@ -220,18 +213,18 @@ int main() {
   }
 
   int best_iter = 0;
-  double best_score = 1000.0;
+  double best_fitness = 1000.0;
   param_vec_t fit;
   while (grav.step()) {
     for (auto& pos : grav.positions()) { trace.emplace_back(pos); }
 
     // println();
-    double new_best = eval_calib(grav.best());
-    if (new_best < best_score) {
-      best_score = new_best;
+    double curr_best = eval_calib(grav.best());
+    if (curr_best < best_fitness) {
+      best_fitness = curr_best;
       fit = grav.best();
       best_iter = grav.iter();
-      println("[{}] new best, err = {:.3}", best_iter, best_score);
+      println("[{}] new best, fitness = {:.3}", best_iter, best_fitness);
     }
     trace.emplace_back(grav.best());
   }
@@ -240,7 +233,7 @@ int main() {
   for (auto& pos : trace) { out_file << pos.transpose() << endl; }
 
   println();
-  println("gsa: err = {:.3}, iter = {} / {}", best_score, best_iter,
+  println("gsa: fitness = {:.3}, iter = {} / {}", best_fitness, best_iter,
           grav.m_max_iters);
   cout << "  score(test)=" << eval_test(fit) << endl;
   cout << "  params:" << endl << fit << endl;
