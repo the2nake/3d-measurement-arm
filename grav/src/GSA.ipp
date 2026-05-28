@@ -87,7 +87,7 @@ bool GSA<Vec, Eval>::step() {
     for (int k = 0; k < kb; ++k) {
       int j = indexed_fitnesses[k].second;
       Vec d = m_x[j] - m_x[i];
-      accels[i] =
+      accels[i] +=
           r(m_rand) * G * masses[j] * (d) / (pow(d.norm(), rp) + epsilon);
     }
   }
