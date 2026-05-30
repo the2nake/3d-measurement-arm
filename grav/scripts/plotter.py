@@ -1,5 +1,5 @@
-import matplotlib.pyplot as plt
 import matplotlib.animation as anim
+import matplotlib.pyplot as plt
 
 fig, ax = plt.subplots()
 
@@ -21,7 +21,7 @@ with open("out/trace.txt", "r") as file:
 lines = []
 for i, (x, y) in enumerate(traces):
     color = "red" if i == len(traces) - 1 else "black"
-    lines.append(ax.plot(x[0], y[0], color=color, linewidth=.5)[0])
+    lines.append(ax.plot(x[0], y[0], color=color, linewidth=0.5)[0])
 
 
 def update(frame):
@@ -36,4 +36,6 @@ def update(frame):
 
 
 ani = anim.FuncAnimation(fig=fig, func=update, frames=len(traces[0][0]), interval=100)
-plt.show()
+FFwriter = anim.FFMpegWriter(fps=10)
+ani.save("out/animation.mp4", writer=FFwriter)
+# plt.show()
