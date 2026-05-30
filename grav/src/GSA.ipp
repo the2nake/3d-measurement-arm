@@ -93,8 +93,7 @@ bool GSA<Vec, Eval>::step() {
   }
 
   // TODO: use verlet integration?
-  for (int i = 0; i < m_v.size(); ++i) { m_v[i] += accels[i]; }
-  for (int i = 0; i < m_x.size(); ++i) { m_x[i] += m_v[i]; }
+  for (int i = 0; i < m_v.size(); ++i) { m_v[i] += accels[i]; m_x[i] += m_v[i]; }
 
   ++m_iter;
   return m_iter <= m_max_iters;
