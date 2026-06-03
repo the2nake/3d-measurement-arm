@@ -14,7 +14,28 @@ template <typename Vec, Evaluator<Vec> Eval>
   requires std::convertible_to<Vec, Eigen::VectorXd>
 class GSA {
  public:
-  GSA(const std::vector<Vec>& guesses, Eval metric);
+  template <typename T>
+  static std::vector<T> generate_guesses(T mean, T range, std::mt19937& rand,
+                                         int n = 150) {
+    if (mean.rows() != range.rows()) {
+      throw std::invalid_argument("mismatched input dimensions");
+    }
+    std::uniform_real_distribution<> uni(-0.5, 0.5);  // use this then scaled
+
+    std::vector<T> guesses = {mean};
+
+    for (int i = 0; i < n; ++i) {
+      T guess(mean.rows());
+      for (int j = 0; j < mean.rows(); ++j) {
+        guess(j) = mean(j) + uni(rand) * range(j);
+      }
+      guesses.emplace_back(guess);
+    }
+
+    return guesses;
+  }
+
+  GSA(const std::vector<Vec>& guesses, Eval metric, std::mt19937& rand);
 
   bool step();
 
@@ -34,7 +55,7 @@ class GSA {
  private:
   double pow(double x, int p) { return p == 0 ? 1 : x * pow(x, p - 1); }
 
-  std::mt19937 m_rand;
+  std::mt19937& m_rand;
 
   int m_iter = 0;
   Vec m_best;

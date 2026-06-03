@@ -12,15 +12,12 @@ using namespace std;
 
 template <typename Vec, Evaluator<Vec> Eval>
   requires std::convertible_to<Vec, Eigen::VectorXd>
-GSA<Vec, Eval>::GSA(const vector<Vec>& guesses, Eval err)
-    : m_eval(std::move(err)), m_x(guesses), m_v(guesses.size()) {
+GSA<Vec, Eval>::GSA(const vector<Vec>& guesses, Eval err, std::mt19937 &rand)
+    : m_eval(std::move(err)), m_x(guesses), m_v(guesses.size()), m_rand(rand) {
   if (guesses.size() < kb) {
     throw std::invalid_argument(
         std::format("not enough guesses, need at least {} (gsa)", kb));
   }
-  std::random_device r;
-  std::seed_seq ss{r(), r(), r(), r(), r(), r(), r(), r(), r()};
-  m_rand = std::mt19937(ss);
 }
 
 template <typename T, typename T2>
