@@ -1,5 +1,6 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
+#include <chrono>
 #include <cmath>
 #include <fstream>
 #include <numbers>
@@ -40,7 +41,7 @@ class Eval {
 
   double operator()(const param_t& parameters) const {
     Eigen::Matrix3Xd residuals = targets - effector_positions(parameters);
-    // use norm of mean average error
+    // use norm of mean absolute error
     return residuals.cwiseAbs().colwise().sum().norm() / targets.cols();
   }
 
@@ -189,6 +190,8 @@ int main() {
     return 1;
   }
 
+  auto start = std::chrono::high_resolution_clock::now();
+
   int best_iter = 0;
   double best_fitness = 1000.0;
   param_vec_t fit;
@@ -206,6 +209,8 @@ int main() {
     trace.emplace_back(grav.best());
   }
 
+  auto end = std::chrono::high_resolution_clock::now();
+
   out_file << guesses.size() + 1 << endl;
   for (auto& pos : trace) { out_file << pos.transpose() << endl; }
 
@@ -216,4 +221,9 @@ int main() {
   cout << "  params:" << endl << fit << endl;
   cout << "  residuals:" << endl
        << test_points - eval_test.effector_positions(fit) << endl;
+
+  cout << endl
+       << "optimisation took "
+       << std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
+       << endl;
 }
