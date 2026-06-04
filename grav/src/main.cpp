@@ -42,7 +42,7 @@ class Eval {
   double operator()(const param_t& parameters) const {
     Eigen::Matrix3Xd residuals = targets - effector_positions(parameters);
     // use norm of mean absolute error
-    return residuals.cwiseAbs().colwise().sum().norm() / targets.cols();
+    return residuals.cwiseAbs().rowwise().sum().norm() / targets.cols();
   }
 
   const Eigen::Matrix3Xd targets;
