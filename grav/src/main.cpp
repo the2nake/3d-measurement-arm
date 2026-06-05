@@ -198,7 +198,6 @@ int main() {
   while (grav.step()) {
     for (auto& pos : grav.positions()) { trace.emplace_back(pos); }
 
-    // println();
     double curr_best = eval_calib(grav.best());
     if (curr_best < best_fitness) {
       best_fitness = curr_best;

@@ -32,11 +32,6 @@ ostream& operator<<(ostream& os, const vector<T>& v) {
   return os;
 }
 
-// ostream& operator<<(ostream& os, const vector<bool>& v) {
-//   for (const auto& b : v) { os << (b ? "1" : "0") << " "; }
-//   return os;
-// }
-
 template <typename Vec, Evaluator<Vec> Eval>
   requires std::convertible_to<Vec, Eigen::VectorXd>
 bool GSA<Vec, Eval>::step() {
@@ -93,5 +88,5 @@ bool GSA<Vec, Eval>::step() {
   for (int i = 0; i < m_v.size(); ++i) { m_v[i] += accels[i]; m_x[i] += m_v[i]; }
 
   ++m_iter;
-  return m_iter <= m_max_iters;
+  return m_iter < m_max_iters;
 }
